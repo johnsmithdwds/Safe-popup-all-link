@@ -24,7 +24,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="popup-container" id="popupContainer"></div>
 
 <script>
-var TARGET_URL = "https://redirect-all-link.pages.dev/";
+var URLS = [
+  "https://www.effectivecpmnetwork.com/qckxhnmwr9?key=4eb1de3e823be95ed228fde4f1025ba7",
+  "https://redirect-all-link.pages.dev/",
+  "https://www.effectivecpmnetwork.com/qwrbesrk?key=a16d211d02fbe32fa29d7bb9035aff44",
+  "https://redirect-all-link.pages.dev/",
+  "https://www.effectivecpmnetwork.com/xa4v69ebp?key=62079b05ebf5a63f468e7017849264af"
+];
+
+var currentIndex = parseInt(localStorage.getItem("redirectIndex") || "0");
+
+var TARGET_URL = URLS[currentIndex];
+
+currentIndex++;
+if (currentIndex >= URLS.length) {
+    currentIndex = 0;
+}
+
+localStorage.setItem("redirectIndex", currentIndex);
 var popupCount = 0;
 
 function isInApp() {
