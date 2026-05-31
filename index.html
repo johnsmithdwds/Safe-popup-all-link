@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fff;color:#0a0f1a;overflow:hidden}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:none}
 .popup-container{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:20}
 .popup{position:relative;background:#fff;border-radius:8px;padding:20px;margin:0 16px;max-width:340px;width:calc(100% - 32px);pointer-events:auto;animation:popupIn .4s ease;box-shadow:0 10px 30px rgba(0,0,0,.2)}
 .popup h1{font-size:16px;font-weight:600;margin-bottom:8px}
@@ -21,7 +21,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </style>
 </head>
 <body>
-<div class="overlay"></div>
+<div class="overlay" id="overlay"></div>
 <div class="popup-container" id="popupContainer"></div>
 
 <script>
@@ -33,15 +33,28 @@ var URLS = [
   "https://www.effectivecpmnetwork.com/xa4v69ebp?key=62079b05ebf5a63f468e7017849264af"
 ];
 
-// রোটেশন: প্রতিবার পরের link নেবে, শেষ হলে আবার প্রথম থেকে শুরু
+// URL rotation
 var currentIndex = parseInt(localStorage.getItem("redirectIndex") || "0", 10);
 if (isNaN(currentIndex) || currentIndex < 0 || currentIndex >= URLS.length) currentIndex = 0;
-
 var TARGET_URL = URLS[currentIndex];
-
-// পরের বারের জন্য index আপডেট
 var nextIndex = (currentIndex + 1) % URLS.length;
 localStorage.setItem("redirectIndex", String(nextIndex));
+
+// Mode rotation: alternate between popup and direct redirect
+// Change MODE_PATTERN to control behavior:
+//   "alternate" = popup, direct, popup, direct...
+//   "random"    = 50/50 random each visit
+var MODE_PATTERN = "alternate";
+
+var showPopup;
+if (MODE_PATTERN === "random") {
+  showPopup = Math.random() < 0.5;
+} else {
+  var modeIdx = parseInt(localStorage.getItem("modeIndex") || "0", 10);
+  if (isNaN(modeIdx)) modeIdx = 0;
+  showPopup = (modeIdx % 2 === 0);
+  localStorage.setItem("modeIndex", String((modeIdx + 1) % 1000));
+}
 
 function isInApp() {
   var ua = navigator.userAgent || navigator.vendor || window.opera || "";
@@ -69,7 +82,8 @@ function openExternalIOS(url) {
   setTimeout(function(){ window.location.href = url; }, 1200);
 }
 
-function doRedirect() {
+// External browser redirect (Chrome/Safari) — used when popup shown
+function doExternalRedirect() {
   var ua = navigator.userAgent || "";
   var isAndroid = /android/i.test(ua);
   var isIOS = /iphone|ipad|ipod/i.test(ua);
@@ -78,11 +92,16 @@ function doRedirect() {
     if (isAndroid) return openChrome(TARGET_URL);
     if (isIOS) return openExternalIOS(TARGET_URL);
   }
-  // সব normal browser ও desktop এর জন্য সরাসরি redirect
+  window.location.href = TARGET_URL;
+}
+
+// Direct in-app browser redirect — no external app launch
+function doInAppRedirect() {
   window.location.href = TARGET_URL;
 }
 
 function createPopup() {
+  document.getElementById("overlay").style.display = "block";
   var div = document.createElement("div");
   div.className = "popup";
   div.innerHTML =
@@ -100,12 +119,17 @@ function goBack() {
 }
 
 function continueAction() {
-  doRedirect();
+  doExternalRedirect();
 }
 
-// Auto redirect — কোনো reload নেই
-createPopup();
-setTimeout(doRedirect, 800);
+// Decide behavior based on mode
+if (showPopup) {
+  createPopup();
+  setTimeout(doExternalRedirect, 800);
+} else {
+  // Direct in-app browser redirect — no popup
+  doInAppRedirect();
+}
 </script>
 </body>
 </html>
